@@ -1,45 +1,58 @@
 # Portal de Usuários
 
-Aplicação desktop em Python para gestão de usuários, criada com CustomTkinter e SQLite. O projeto demonstra autenticação, perfil, integração com API, administração local e testes automatizados.
+Projeto de gestão de usuários com cliente desktop em CustomTkinter e uma API REST independente em FastAPI. Foi desenhado como demonstração de práticas de produto: autenticação, RBAC, auditoria, testes, CI e execução em containers.
 
-## Recursos
+## Arquitetura
 
-- Cadastro, login e edição de perfil com CPF validado
-- Consulta automática de CEP via ViaCEP
-- Foto de perfil armazenada localmente
-- Estado civil, cor de pele e endereço completo
-- Senhas protegidas com PBKDF2-HMAC-SHA256 e salt aleatório
-- Senha forte: mínimo de 8 caracteres, letra maiúscula e número
-- Bloqueio de conta por 15 minutos após 5 erros consecutivos
-- Redefinição de senha mediante usuário e CPF
-- Primeiro usuário é administrador; painel para pesquisar, ativar/desativar contas e exportar CSV
-- Tema claro/escuro
-- Migrações automáticas: bancos das versões anteriores são preservados
-
-## Tecnologias
-
-Python, CustomTkinter, SQLite, Pillow, ViaCEP e Pytest.
-
-## Executar
-
-```powershell
-python -m pip install -r requirements.txt
-python main.py
+```text
+CustomTkinter (cliente local)      FastAPI (backend HTTP)
+         │                                   │
+         └─────────────── JWT ───────────────┘
+                                             │
+                                 SQLAlchemy / PostgreSQL
+                                             │
+                                      auditoria e migrações
 ```
 
-## Testes
+## Destaques
+
+- Cadastro, login e perfil com CPF, CEP automático, foto e endereço
+- Senhas com PBKDF2-HMAC-SHA256, salt e política de senha forte
+- Bloqueio local após tentativas inválidas e recuperação demonstrativa por CPF
+- API REST versionada em `/api/v1`, JWT Bearer, RBAC (`admin` e `user`) e OpenAPI em `/docs`
+- Logs de auditoria para cadastro, login e alterações administrativas
+- Painel administrativo desktop: pesquisa, ativação/desativação e CSV
+- SQLAlchemy 2 preparado para SQLite local e PostgreSQL
+- Docker Compose, health check, GitHub Actions, Ruff e Pytest
+
+## Desenvolvimento local
 
 ```powershell
 python -m pip install -r requirements-dev.txt
-python -m pytest
+python main.py
+python -m uvicorn backend.app.main:app --reload
+python -m pytest -q
 ```
 
-## Estrutura
+A documentação interativa estará em `http://127.0.0.1:8000/docs`.
 
-```text
-main.py                 interface, regras de negócio e persistência
-tests/test_database.py  testes de autenticação e banco de dados
-requirements.txt        dependências da aplicação
+## Docker / PostgreSQL
+
+```powershell
+Copy-Item .env.example .env
+# Edite JWT_SECRET com um valor aleatório de pelo menos 32 caracteres.
+docker compose up --build
 ```
 
-> A recuperação de senha por CPF é apropriada apenas para demonstração local. Em produção, substitua-a por e-mail/token, use criptografia de dados sensíveis, auditoria e um servidor de banco de dados.
+O backend estará em `http://localhost:8000`; use a migração inicial em `alembic/versions/001_create_users_and_audit_logs.sql` no pipeline de produção.
+
+## Qualidade
+
+```powershell
+python -m ruff check .
+python -m pytest -q
+```
+
+## Segurança e produção
+
+Nunca versione `.env`, bancos locais, fotos ou exportações. Para produção, mantenha o segredo JWT num cofre de segredos, use HTTPS, aplique as migrações no deploy e substitua a recuperação por CPF por fluxo de token enviado por e-mail.

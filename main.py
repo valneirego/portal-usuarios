@@ -13,15 +13,14 @@ import shutil
 import sqlite3
 import threading
 import uuid
-from datetime import datetime, timedelta, timezone
-from urllib.error import URLError
-from urllib.request import urlopen
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from tkinter import filedialog, messagebox
+from urllib.error import URLError
+from urllib.request import urlopen
 
 import customtkinter as ctk
 from PIL import Image
-
 
 APP_DIR = Path(__file__).resolve().parent
 DATABASE_FILE = APP_DIR / "usuarios.db"
@@ -155,14 +154,14 @@ class UserDatabase:
             ).fetchone()
             if record is None or not record["ativo"]:
                 return False, "Usuário ou senha inválidos."
-            if record["bloqueado_ate"] and datetime.fromisoformat(record["bloqueado_ate"]) > datetime.now(timezone.utc):
+            if record["bloqueado_ate"] and datetime.fromisoformat(record["bloqueado_ate"]) > datetime.now(UTC):
                 return False, "Conta temporariamente bloqueada. Tente novamente em 15 minutos."
             if self._verify_password(password, record["senha_hash"]):
                 connection.execute("UPDATE usuarios SET falhas_login = 0, bloqueado_ate = NULL WHERE id = ?", (record["id"],))
                 connection.commit()
                 return True, ""
             failures = record["falhas_login"] + 1
-            lock_until = (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat() if failures >= 5 else None
+            lock_until = (datetime.now(UTC) + timedelta(minutes=15)).isoformat() if failures >= 5 else None
             connection.execute("UPDATE usuarios SET falhas_login = ?, bloqueado_ate = ? WHERE id = ?", (failures, lock_until, record["id"]))
             connection.commit()
             return False, "Conta bloqueada por 15 minutos." if lock_until else "Usuário ou senha inválidos."
