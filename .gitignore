@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+usuarios.db
+fotos_perfil/
+*.csv
